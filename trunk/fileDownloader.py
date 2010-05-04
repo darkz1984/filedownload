@@ -105,12 +105,14 @@ class DownloadFile(object):
 	def authFtp(self):
 		"""handles ftp authentication"""
 		ftped = urllib2.FTPHandler()
-		req = urllib2.Request("ftp://%s:%s@%s"%(self.auth[0], self.auth[1], self.url))
+		ftpUrl = self.url.replace('ftp://', '')
+		req = urllib2.Request("ftp://%s:%s@%s"%(self.auth[0], self.auth[1], ftpUrl))
+		print "ftp://%s:%s@%s"%(self.auth[0], self.auth[1], self.url)
 		req.timeout = 120
 		ftpObj = ftped.ftp_open(req)
 		return ftpObj
 
-downloader = DownloadFile('http://emergingpictures.cdnetworks.net/emergingpictures/Trailers/A_Prophet_Trailer_1-85_VC-1-Tr.wmv', auth=('Emergingpictures', 'QM6LYBwj'))
-#downloader.startNormal()
-downloader.startResume()
+downloader = DownloadFile('ftp://64.61.186.98:2695/trailers/Emerging_Pictures_Logo.wmv', auth=('catalogftp', 'hGwDo5i2'))
+downloader.startNormal()
+#downloader.startResume()
 #urlretrieve("ftp://ftp.gimp.org/pub/gimp/v2.6/patch-2.6.5.bz2")
