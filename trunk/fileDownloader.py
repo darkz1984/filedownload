@@ -60,11 +60,11 @@ class DownloadFile(object):
 		if not self.localFileName:
 			self.localFileName = self.getUrlFilename(self.url)
 		req = urllib2.Request(self.url)
-		req.headers['Range'] = 'bytes=%s-%s' % (self.getLocalFileSize()+1, self.getUrlFileSize())
+		req.headers['Range'] = 'bytes=%s-%s' % (self.getLocalFileSize(), self.getUrlFileSize())
 		self.downloadFile(req)
 
 
-downloader = DownloadFile('http://download.thinkbroadband.com/5MB.zip')
-downloader.downloadFile()
-#downloader.startResume()
+downloader = DownloadFile('http://download.thinkbroadband.com/200MB.zip')
+#downloader.downloadFile()
+downloader.startResume()
 #urlretrieve("ftp://ftp.gimp.org/pub/gimp/v2.6/patch-2.6.5.bz2")
