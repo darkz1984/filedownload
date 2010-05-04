@@ -7,34 +7,25 @@ from urlparse import urlparse
 
 class DownloadFile(object):
 	"""Downloads files from http or ftp locations"""
-	def __init__(self, url, localFileName=None):
+	def __init__(self, url, localFileName=None, auth=None):
 		self.url = url
 		self.urlFileName = None
 		self.progress = None
 		self.localFileName = localFileName
 		self.type = self.getType()
-		
-	def downloadFile(self, resume=None):
-		chunk = 1024
+		self.auth = auth
 		if not self.localFileName:
 			self.localFileName = self.getUrlFilename(self.url)
-		if resume:
-		    if resume != 'restart':
-		    	f = open(self.localFileName , "ab")
-		    	urllib2Obj = urllib2.urlopen(resume)
-		    else:
-		    	f = open(self.localFileName , "wb")
-		    	urllib2Obj = urllib2.urlopen(self.url)
-		else:
-			f = open(self.localFileName , "wb")
-			urllib2Obj = urllib2.urlopen(self.url)
+		
+	def downloadFile(self, urlObj, fileObj):
+		chunk = 1024
 		while 1:
-			data = urllib2Obj.read(chunk)
+			data = urlObj.read(chunk)
 			if not data:
 	            #print "done."
-				f.close()
+				fileObj.close()
 				break
-			f.write(data)
+			fileObj.write(data)
 			print "Read %s bytes"%len(data)
         
 	def getUrlFilename(self, url):
@@ -58,19 +49,39 @@ class DownloadFile(object):
 		print type[0]
 		return type[0]
 		
-	def startResume(self):
+	def startResume(self, restart=None):
 		"""starts to resume by getting the local filesize and calling downloadFile"""
-		if not self.localFileName:
-			self.localFileName = self.getUrlFilename(self.url)
+		if restart:
+			f = open(self.localFileName , "wb")
+		else:
+			f = open(self.localFileName , "ab")
+		if self.auth:
+			self.authHttp()
+		#to resume ftp probably have to subClass ftpHandler or just user ftplib
 		req = urllib2.Request(self.url)
 		req.headers['Range'] = 'bytes=%s-%s' % (self.getLocalFileSize(), self.getUrlFileSize())
-		self.downloadFile(req)
+		urllib2Obj = urllib2.urlopen(req)
+		self.downloadFile(urllib2Obj, f)
+
+	def startNormal(self):
+		"""starts the file download normally"""
+		f = open(self.localFileName , "wb")
+		if self.auth:
+			if self.type == 'http':
+				authObj = self.authHttp()
+				self.downloadFile(authObj, f)
+			elif self.type == 'ftp':
+				authObj = self.authFtp()
+				self.downloadFile(authObj, f)
+		else:
+			urllib2Obj = urllib2.urlopen(self.url)
+			self.downloadFile(urllib2Obj, f)
 
 	def authHttp(self):
 		"""handles http basic authentication"""
 		passman = urllib2.HTTPPasswordMgrWithDefaultRealm()
 		# this creates a password manager
-		passman.add_password(None, theurl, username, password)
+		passman.add_password(None, self.url, self.auth[0], self.auth[1])
 		# because we have put None at the start it will always
 		# use this username/password combination for  urls
 		# for which `theurl` is a super-url
@@ -86,11 +97,20 @@ class DownloadFile(object):
 		# HTTPPasswordMgrWithDefaultRealm will be very confused.
 		# You must (of course) use it when fetching the page though.
 		
-		pagehandle = urllib2.urlopen(theurl)
+		pagehandle = urllib2.urlopen(self.url)
 		# authentication is now handled automatically for us
-		print pagehandle.read()
+		#print pagehandle.read()
+		return pagehandle
+		
+	def authFtp(self):
+		"""handles ftp authentication"""
+		ftped = urllib2.FTPHandler()
+		req = urllib2.Request("ftp://%s:%s@%s"%(self.auth[0], self.auth[1], self.url))
+		req.timeout = 120
+		ftpObj = ftped.ftp_open(req)
+		return ftpObj
 
-downloader = DownloadFile('http://download.thinkbroadband.com/200MB.zip')
-#downloader.downloadFile()
+downloader = DownloadFile('http://emergingpictures.cdnetworks.net/emergingpictures/Trailers/A_Prophet_Trailer_1-85_VC-1-Tr.wmv', auth=('Emergingpictures', 'QM6LYBwj'))
+#downloader.startNormal()
 downloader.startResume()
 #urlretrieve("ftp://ftp.gimp.org/pub/gimp/v2.6/patch-2.6.5.bz2")
