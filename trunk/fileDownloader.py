@@ -2,8 +2,8 @@ import os
 import urllib2
 import sys
 import re
-import base64
-from urlparse import urlparse
+import ftplib
+import urlparse
 
 class DownloadFile(object):
 	"""Downloads files from http or ftp locations"""
@@ -45,11 +45,11 @@ class DownloadFile(object):
 		
 	def getType(self):
 		"""figures out if self.url is http or ftp"""
-		type = self.url.split('://')
-		print type[0]
-		return type[0]
+		type = urlparse.urlparse(self.url).scheme
+		print type
+		return type
 		
-	def startResume(self, restart=None):
+	def startHttpResume(self, restart=None):
 		"""starts to resume by getting the local filesize and calling downloadFile"""
 		if restart:
 			f = open(self.localFileName , "wb")
@@ -62,6 +62,14 @@ class DownloadFile(object):
 		req.headers['Range'] = 'bytes=%s-%s' % (self.getLocalFileSize(), self.getUrlFileSize())
 		urllib2Obj = urllib2.urlopen(req)
 		self.downloadFile(urllib2Obj, f)
+
+	def startFtpResume(self, restart=None):
+		"""starts to resume"""
+		ftper = ftplib.FTP()
+		baseUrl= urlparse.urlparse(self.url).hostname
+		urlPort = urlparse.urlparse(self.url).port
+		ftper.connect(baseUrl, urlPort)
+		ftper.login(self.auth[0], self.auth[1])
 
 	def startNormal(self):
 		"""starts the file download normally"""
@@ -114,5 +122,5 @@ class DownloadFile(object):
 
 downloader = DownloadFile('ftp://64.61.186.98:2695/trailers/Emerging_Pictures_Logo.wmv', auth=('catalogftp', 'hGwDo5i2'))
 downloader.startNormal()
-#downloader.startResume()
+#downloader.startHttpResume()
 #urlretrieve("ftp://ftp.gimp.org/pub/gimp/v2.6/patch-2.6.5.bz2")
