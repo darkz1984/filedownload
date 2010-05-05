@@ -66,10 +66,16 @@ class DownloadFile(object):
 	def startFtpResume(self, restart=None):
 		"""starts to resume"""
 		ftper = ftplib.FTP()
-		baseUrl= urlparse.urlparse(self.url).hostname
-		urlPort = urlparse.urlparse(self.url).port
+		parseObj = urlparse.urlparse(self.url)
+		baseUrl= parseObj.hostname
+		urlPort = parseObj.port
+		bPath = os.path.basename(o.path)
+		gPath = o.path.replace(spath, "")
 		ftper.connect(baseUrl, urlPort)
 		ftper.login(self.auth[0], self.auth[1])
+		if len(gpath) > 1:
+			ftp.cwd(gpath)
+		
 
 	def startNormal(self):
 		"""starts the file download normally"""
