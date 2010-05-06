@@ -4,6 +4,7 @@ import sys
 import re
 import ftplib
 import urlparse
+import urllib
 
 class DownloadFile(object):
 	"""Downloads files from http or ftp locations"""
@@ -30,7 +31,7 @@ class DownloadFile(object):
         
 	def getUrlFilename(self, url):
 		"""finds out the filename from an url"""
-		return os.path.basename(url)
+		return urllib.unquote(os.path.basename(url))
 		
 	def getUrlFileSize(self):
 		"""gets filesize of remote file from ftp or http server"""
@@ -69,12 +70,20 @@ class DownloadFile(object):
 		parseObj = urlparse.urlparse(self.url)
 		baseUrl= parseObj.hostname
 		urlPort = parseObj.port
-		bPath = os.path.basename(o.path)
-		gPath = o.path.replace(spath, "")
+		bPath = os.path.basename(parseObj.path)
+		gPath = parseObj.path.replace(bPath, "")
+		unEncgPath = urllib.unquote(gPath)
+		fileName = urllib.unquote(os.path.basename(self.url))
 		ftper.connect(baseUrl, urlPort)
 		ftper.login(self.auth[0], self.auth[1])
-		if len(gpath) > 1:
-			ftp.cwd(gpath)
+		print gPath
+		if len(gPath) > 1:
+			ftper.cwd(unEncgPath)
+		ftper.sendcmd("TYPE I")
+		ftper.sendcmd("REST " + str(self.getLocalFileSize()))
+		downCmd = "RETR "+ fileName
+		print downCmd
+		ftper.retrbinary(downCmd, open(fileName, 'ab').write)
 		
 
 	def startNormal(self):
@@ -126,7 +135,7 @@ class DownloadFile(object):
 		ftpObj = ftped.ftp_open(req)
 		return ftpObj
 
-downloader = DownloadFile('ftp://64.61.186.98:2695/trailers/Emerging_Pictures_Logo.wmv', auth=('catalogftp', 'hGwDo5i2'))
-downloader.startNormal()
-#downloader.startHttpResume()
+downloader = DownloadFile('ftp://files.emergingpictures.com/OPERA%20and%20BALLET/OPERA/l%27Orfeo/TRAILER/Orfeo%20Live%20Trailer%20720p%20V2.mov', auth=('fullaccess', 'Emerging245'))
+# downloader.startNormal()
+downloader.startFtpResume()
 #urlretrieve("ftp://ftp.gimp.org/pub/gimp/v2.6/patch-2.6.5.bz2")
