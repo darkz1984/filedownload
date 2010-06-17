@@ -153,6 +153,7 @@ class DownloadFile(object):
 				authObj = self.__authHttp__()
 				self.__downloadFile__(authObj, f)
 			elif self.type == 'ftp':
+				self.url = self.url.replace('ftp://', '')
 				authObj = self.__authFtp__()
 				self.__downloadFile__(authObj, f)
 		else:
@@ -163,6 +164,6 @@ class DownloadFile(object):
 		"""attempts to resume file download"""
 		type = self.getType()
 		if type == 'http':
-			self.startHttpResume()
+			self.__startHttpResume__()
 		elif type == 'ftp':
-			self.startFtpResume()
+			self.__startFtpResume__()
