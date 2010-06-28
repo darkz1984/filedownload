@@ -53,7 +53,7 @@ class DownloadFile(object):
 				fileObj.close()
 				break
 			fileObj.write(data)
-			print "Read %s bytes"%len(data)
+			#print "Read %s bytes"%len(data)
         
 	def __authHttp__(self):
 		"""handles http basic authentication"""
