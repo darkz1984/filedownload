@@ -10,7 +10,7 @@ import urllib
 class DownloadFile(object):
 	"""This class is used for downloading files from the internet via http or ftp.
 	If supports basic http authentication and ftp accounts, and supports resuming downloads. 
-	It does not support https or sftp.
+	It does not support https or sftp at this time.
 	
 	The main advantage of this class is it's ease of use, and pure pythoness, no C to compile.
 	
@@ -21,10 +21,10 @@ class DownloadFile(object):
 			downloader = fileDownloader.DownloadFile('http://example.com/file.zip')
 			downloader.download()
 	 	Use full path to download
-	 		downloader = fileDownloader.DownloadFile('http://example.com/file.zip', "C:\\Users\\bantonj\\Downloads\\newfilename.zip")
+	 		downloader = fileDownloader.DownloadFile('http://example.com/file.zip', "C:\\Users\\username\\Downloads\\newfilename.zip")
 	 		downloader.download()
 	 	Password protected download
-	 		downloader = fileDownloader.DownloadFile('http://example.com/file.zip', "C:\\Users\\bantonj\\Downloads\\newfilename.zip", ('jimmy','JHuyi5'))
+	 		downloader = fileDownloader.DownloadFile('http://example.com/file.zip', "C:\\Users\\username\\Downloads\\newfilename.zip", ('username','password'))
 	 		downloader.download()
 	 	Resume
 	 		downloader = fileDownloader.DownloadFile('http://example.com/file.zip')
@@ -85,7 +85,7 @@ class DownloadFile(object):
 		ftped = urllib2.FTPHandler()
 		ftpUrl = self.url.replace('ftp://', '')
 		req = urllib2.Request("ftp://%s:%s@%s"%(self.auth[0], self.auth[1], ftpUrl))
-		print "ftp://%s:%s@%s"%(self.auth[0], self.auth[1], self.url)
+		#print "ftp://%s:%s@%s"%(self.auth[0], self.auth[1], self.url)
 		req.timeout = 120
 		ftpObj = ftped.ftp_open(req)
 		return ftpObj
@@ -98,7 +98,6 @@ class DownloadFile(object):
 			f = open(self.localFileName , "ab")
 		if self.auth:
 			self.__authHttp__()
-		#to resume ftp probably have to subClass ftpHandler or just user ftplib
 		req = urllib2.Request(self.url)
 		req.headers['Range'] = 'bytes=%s-%s' % (self.getLocalFileSize(), self.getUrlFileSize())
 		urllib2Obj = urllib2.urlopen(req)
@@ -116,13 +115,13 @@ class DownloadFile(object):
 		fileName = urllib.unquote(os.path.basename(self.url))
 		ftper.connect(baseUrl, urlPort)
 		ftper.login(self.auth[0], self.auth[1])
-		print gPath
+		#print gPath
 		if len(gPath) > 1:
 			ftper.cwd(unEncgPath)
 		ftper.sendcmd("TYPE I")
 		ftper.sendcmd("REST " + str(self.getLocalFileSize()))
 		downCmd = "RETR "+ fileName
-		print downCmd
+		#print downCmd
 		ftper.retrbinary(downCmd, open(fileName, 'ab').write)
         
 	def getUrlFilename(self, url):
