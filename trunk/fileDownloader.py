@@ -12,7 +12,8 @@ class DownloadFile(object):
 	It supports basic http authentication and ftp accounts, and supports resuming downloads. 
 	It does not support https or sftp at this time.
 	
-	The main advantage of this class is it's ease of use, and pure pythoness, no C to compile.
+	The main advantage of this class is it's ease of use, and pure pythoness. It only uses the Python standard library, 
+	so no dependencies to deal with, and no C to compile.
 	
 	#####
 	If a non-standard port is needed just include it in the url (http://example.com:7632).
