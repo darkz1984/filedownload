@@ -37,7 +37,8 @@ class DownloadFile(object):
 		"""Note that auth argument expects a tuple, ('username','password')"""
 		self.url = url
 		self.urlFileName = None
-		self.progress = None
+		self.progress = 0
+		self.fileSize = None
 		self.localFileName = localFileName
 		self.type = self.getType()
 		self.auth = auth
@@ -45,9 +46,10 @@ class DownloadFile(object):
 		if not self.localFileName:
 			self.localFileName = self.getUrlFilename(self.url)
 		
-	def __downloadFile__(self, urlObj, fileObj):
+	def __downloadFile__(self, urlObj, fileObj, callback=None, args=None):
 		"""starts the download loop"""
-		chunk = 1024
+		chunk = 8192
+		cur = 0
 		while 1:
 			data = urlObj.read(chunk)
 			if not data:
@@ -55,6 +57,10 @@ class DownloadFile(object):
 				fileObj.close()
 				break
 			fileObj.write(data)
+			cur = cur + 8192
+			self.progress = (cur*100)/int(self.fileSize)
+			if callback:
+				callback(self.progress)
 			#print "Read %s bytes"%len(data)
         
 	def __authHttp__(self):
@@ -146,17 +152,18 @@ class DownloadFile(object):
 		type = urlparse.urlparse(self.url).scheme
 		return type	
 
-	def download(self):
+	def download(self, callBack=None, aRgs=None):
 		"""starts the file download"""
 		f = open(self.localFileName , "wb")
+		self.fileSize = self.getUrlFileSize()
 		if self.auth:
 			if self.type == 'http':
 				authObj = self.__authHttp__()
-				self.__downloadFile__(authObj, f)
+				self.__downloadFile__(authObj, f, callback=callBack, args=aRgs)
 			elif self.type == 'ftp':
 				self.url = self.url.replace('ftp://', '')
 				authObj = self.__authFtp__()
-				self.__downloadFile__(authObj, f)
+				self.__downloadFile__(authObj, f, callback=callBack, args=aRgs)
 		else:
 			urllib2Obj = urllib2.urlopen(self.url)
 			self.__downloadFile__(urllib2Obj, f)
