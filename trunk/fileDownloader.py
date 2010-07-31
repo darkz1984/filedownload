@@ -113,6 +113,10 @@ class DownloadFile(object):
 
 	def __startFtpResume__(self, restart=None):
 		"""starts to resume FTP"""
+		if restart:
+			f = open(self.localFileName , "wb")
+		else:
+			f = open(self.localFileName , "ab")
 		ftper = ftplib.FTP()
 		parseObj = urlparse.urlparse(self.url)
 		baseUrl= parseObj.hostname
@@ -130,7 +134,7 @@ class DownloadFile(object):
 		ftper.sendcmd("REST " + str(self.getLocalFileSize()))
 		downCmd = "RETR "+ fileName
 		#print downCmd
-		ftper.retrbinary(downCmd, open(fileName, 'ab').write)
+		ftper.retrbinary(downCmd, f.write)
         
 	def getUrlFilename(self, url):
 		"""returns filename from url"""
