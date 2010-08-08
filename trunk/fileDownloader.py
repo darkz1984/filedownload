@@ -159,7 +159,6 @@ class DownloadFile(object):
 	def download(self, callBack=None, aRgs=None):
 		"""starts the file download"""
 		f = open(self.localFileName , "wb")
-		self.fileSize = self.getUrlFileSize()
 		if self.auth:
 			if self.type == 'http':
 				authObj = self.__authHttp__()
@@ -175,6 +174,7 @@ class DownloadFile(object):
 	def resume(self):
 		"""attempts to resume file download"""
 		type = self.getType()
+		self.fileSize = self.getUrlFileSize()
 		if type == 'http':
 			self.__startHttpResume__()
 		elif type == 'ftp':
