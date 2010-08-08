@@ -58,8 +58,8 @@ class DownloadFile(object):
 				break
 			fileObj.write(data)
 			cur = cur + 8192
-			self.progress = (cur*100)/int(self.fileSize)
 			if callback:
+				self.progress = (cur*100)/int(self.fileSize)
 				callback(self.progress)
 			#print "Read %s bytes"%len(data)
         
@@ -174,7 +174,6 @@ class DownloadFile(object):
 	def resume(self):
 		"""attempts to resume file download"""
 		type = self.getType()
-		self.fileSize = self.getUrlFileSize()
 		if type == 'http':
 			self.__startHttpResume__()
 		elif type == 'ftp':
