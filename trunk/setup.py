@@ -1,6 +1,6 @@
 from setuptools import setup
 setup(name='fileDownloader.py', 
-		version='0.2',
+		version='0.2.1',
 		description="Downloads files via HTTP or FTP",
 		download_url="http://code.google.com/p/filedownload/downloads/list",
 		long_description="""Intro
