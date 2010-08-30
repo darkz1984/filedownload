@@ -1,6 +1,7 @@
 """Downloads files from http or ftp locations"""
 import os
 import urllib2
+import socket
 import sys
 import re
 import ftplib
@@ -33,7 +34,7 @@ class DownloadFile(object):
 			downloader.resume()
 	"""        
 	
-	def __init__(self, url, localFileName=None, auth=None):
+	def __init__(self, url, localFileName=None, auth=None, timeout=60):
 		"""Note that auth argument expects a tuple, ('username','password')"""
 		self.url = url
 		self.urlFileName = None
@@ -42,6 +43,7 @@ class DownloadFile(object):
 		self.localFileName = localFileName
 		self.type = self.getType()
 		self.auth = auth
+		self.timeout = timeout
 		#if no filename given pulls filename from the url
 		if not self.localFileName:
 			self.localFileName = self.getUrlFilename(self.url)
@@ -158,6 +160,9 @@ class DownloadFile(object):
 
 	def download(self, callBack=None, aRgs=None):
 		"""starts the file download"""
+		# set socket timeout
+		socket.setdefaulttimeout(self.timeout)
+		
 		f = open(self.localFileName , "wb")
 		if self.auth:
 			if self.type == 'http':
