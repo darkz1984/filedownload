@@ -1,12 +1,13 @@
 """Downloads files from http or ftp locations"""
 import os
 import urllib2
-import socket
 import sys
 import re
 import ftplib
 import urlparse
 import urllib
+from threading import Timer
+import socket
 
 class DownloadFile(object):
 	"""This class is used for downloading files from the internet via http or ftp.
@@ -34,7 +35,7 @@ class DownloadFile(object):
 			downloader.resume()
 	"""        
 	
-	def __init__(self, url, localFileName=None, auth=None, timeout=60):
+	def __init__(self, url, localFileName=None, auth=None, timeout=120, autoretry=True):
 		"""Note that auth argument expects a tuple, ('username','password')"""
 		self.url = url
 		self.urlFileName = None
@@ -44,6 +45,7 @@ class DownloadFile(object):
 		self.type = self.getType()
 		self.auth = auth
 		self.timeout = timeout
+		self.autoretry = autoretry
 		#if no filename given pulls filename from the url
 		if not self.localFileName:
 			self.localFileName = self.getUrlFilename(self.url)
@@ -53,7 +55,17 @@ class DownloadFile(object):
 		chunk = 8192
 		cur = 0
 		while 1:
-			data = urlObj.read(chunk)
+			#start time to cancel read if certain time elapses
+			def breakit():
+				urlObj.close()
+			t = Timer(self.timeout, breakit)
+			t.start()
+			try:
+				data = urlObj.read(chunk)
+			except socket.timeout:
+				if self.autoretry:
+					self.resume()
+			t.cancel()
 			if not data:
 	            #print "done."
 				fileObj.close()
@@ -85,7 +97,7 @@ class DownloadFile(object):
 		# HTTPPasswordMgrWithDefaultRealm will be very confused.
 		# You must (of course) use it when fetching the page though.
 		
-		pagehandle = urllib2.urlopen(self.url)
+		pagehandle = urllib2.urlopen(self.url, timeout=self.timeout)
 		# authentication is now handled automatically for us
 		#print pagehandle.read()
 		return pagehandle
@@ -119,7 +131,7 @@ class DownloadFile(object):
 			f = open(self.localFileName , "wb")
 		else:
 			f = open(self.localFileName , "ab")
-		ftper = ftplib.FTP()
+		ftper = ftplib.FTP(timeout=60)
 		parseObj = urlparse.urlparse(self.url)
 		baseUrl= parseObj.hostname
 		urlPort = parseObj.port
@@ -136,7 +148,12 @@ class DownloadFile(object):
 		ftper.sendcmd("REST " + str(self.getLocalFileSize()))
 		downCmd = "RETR "+ fileName
 		#print downCmd
-		ftper.retrbinary(downCmd, f.write)
+		try:
+			ftper.retrbinary(downCmd, f.write)
+		except socket.error:
+			if self.autoretry:
+				self.resume()
+		
         
 	def getUrlFilename(self, url):
 		"""returns filename from url"""
@@ -160,8 +177,6 @@ class DownloadFile(object):
 
 	def download(self, callBack=None, aRgs=None):
 		"""starts the file download"""
-		# set socket timeout
-		socket.setdefaulttimeout(self.timeout)
 		
 		f = open(self.localFileName , "wb")
 		if self.auth:
@@ -173,7 +188,7 @@ class DownloadFile(object):
 				authObj = self.__authFtp__()
 				self.__downloadFile__(authObj, f, callback=callBack, args=aRgs)
 		else:
-			urllib2Obj = urllib2.urlopen(self.url)
+			urllib2Obj = urllib2.urlopen(self.url, timeout=self.timeout)
 			self.__downloadFile__(urllib2Obj, f)
 
 	def resume(self):
