@@ -6,8 +6,10 @@ import re
 import ftplib
 import urlparse
 import urllib
-from threading import Timer
 import socket
+import sys
+
+version = "0.3.0"
 
 class DownloadFile(object):
 	"""This class is used for downloading files from the internet via http or ftp.
@@ -35,7 +37,7 @@ class DownloadFile(object):
 			downloader.resume()
 	"""        
 	
-	def __init__(self, url, localFileName=None, auth=None, timeout=120, autoretry=True):
+	def __init__(self, url, localFileName=None, auth=None, timeout=120, autoretry=True, retries=10):
 		"""Note that auth argument expects a tuple, ('username','password')"""
 		self.url = url
 		self.urlFileName = None
@@ -46,26 +48,23 @@ class DownloadFile(object):
 		self.auth = auth
 		self.timeout = timeout
 		self.autoretry = autoretry
+		self.retries = retries
+		self.curretry = None
 		#if no filename given pulls filename from the url
 		if not self.localFileName:
 			self.localFileName = self.getUrlFilename(self.url)
 		
 	def __downloadFile__(self, urlObj, fileObj, callback=None, args=None):
 		"""starts the download loop"""
+		self.fileSize = self.getUrlFileSize()
 		chunk = 8192
 		cur = 0
 		while 1:
-			#start time to cancel read if certain time elapses
-			def breakit():
-				urlObj.close()
-			t = Timer(self.timeout, breakit)
-			t.start()
 			try:
 				data = urlObj.read(chunk)
 			except socket.timeout:
 				if self.autoretry:
 					self.resume()
-			t.cancel()
 			if not data:
 	            #print "done."
 				fileObj.close()
@@ -76,6 +75,11 @@ class DownloadFile(object):
 				self.progress = (cur*100)/int(self.fileSize)
 				callback(self.progress)
 			#print "Read %s bytes"%len(data)
+		if self.autoretry:
+			if self.retries > self.curretry:
+				self.curretry += 1
+				if self.getLocalFileSize() != self.urlFilesize:
+					self.resume()
         
 	def __authHttp__(self):
 		"""handles http basic authentication"""
@@ -177,6 +181,9 @@ class DownloadFile(object):
 
 	def download(self, callBack=None, aRgs=None):
 		"""starts the file download"""
+		#set socket timeout
+		# timeout in seconds
+		socket.setdefaulttimeout(self.timeout)
 		
 		f = open(self.localFileName , "wb")
 		if self.auth:
