@@ -37,12 +37,14 @@ class DownloadFile(object):
 			downloader.resume()
 	"""        
 	
-	def __init__(self, url, localFileName=None, auth=None, timeout=120, autoretry=True, retries=10):
+	def __init__(self, url, q=None, localFileName=None, auth=None, timeout=120.0, autoretry=False, retries=10):
 		"""Note that auth argument expects a tuple, ('username','password')"""
 		self.url = url
+		self.queue = q
 		self.urlFileName = None
 		self.progress = 0
 		self.fileSize = None
+		print localFileName
 		self.localFileName = localFileName
 		self.type = self.getType()
 		self.auth = auth
@@ -50,37 +52,45 @@ class DownloadFile(object):
 		self.autoretry = autoretry
 		self.retries = retries
 		self.curretry = None
+		self.cur = 0
 		#if no filename given pulls filename from the url
 		if not self.localFileName:
 			self.localFileName = self.getUrlFilename(self.url)
 		
-	def __downloadFile__(self, urlObj, fileObj, callback=None, args=None):
+	def __downloadFile__(self, urlObj, fileObj, callBack=None, args=None):
 		"""starts the download loop"""
 		self.fileSize = self.getUrlFileSize()
 		chunk = 8192
-		cur = 0
 		while 1:
 			try:
 				data = urlObj.read(chunk)
 			except socket.timeout:
 				if self.autoretry:
-					self.resume()
+					self.__retry__()
 			if not data:
-	            #print "done."
+				print "done."
 				fileObj.close()
+				if self.queue:
+					self.queue.put('done')
 				break
 			fileObj.write(data)
-			cur = cur + 8192
-			if callback:
-				self.progress = (cur*100)/int(self.fileSize)
-				callback(self.progress)
-			#print "Read %s bytes"%len(data)
+			self.cur = self.cur + 8192
+			self.progress = (self.cur*100)/int(self.fileSize)
+			if self.queue:
+				self.queue.put([self.progress, self.cur, self.fileSize, args])
+			if callBack:
+				callBack([self.progress, self.cur, self.fileSize], args)
+			
 		if self.autoretry:
-			if self.retries > self.curretry:
+			self.__retry__()
+      
+	def __retry__(self):
+		"""auto-resumes up to self.retries"""
+		if self.retries > self.curretry:
 				self.curretry += 1
 				if self.getLocalFileSize() != self.urlFilesize:
 					self.resume()
-        
+					
 	def __authHttp__(self):
 		"""handles http basic authentication"""
 		passman = urllib2.HTTPPasswordMgrWithDefaultRealm()
@@ -101,10 +111,10 @@ class DownloadFile(object):
 		# HTTPPasswordMgrWithDefaultRealm will be very confused.
 		# You must (of course) use it when fetching the page though.
 		
-		pagehandle = urllib2.urlopen(self.url, timeout=self.timeout)
+		#pagehandle = urllib2.urlopen(self.url, timeout=self.timeout)
 		# authentication is now handled automatically for us
 		#print pagehandle.read()
-		return pagehandle
+		#return pagehandle
 		
 	def __authFtp__(self):
 		"""handles ftp authentication"""
@@ -116,8 +126,10 @@ class DownloadFile(object):
 		ftpObj = ftped.ftp_open(req)
 		return ftpObj
         
-	def __startHttpResume__(self, restart=None):
+	def __startHttpResume__(self, restart=None, callBack=None):
 		"""starts to resume HTTP"""
+		curSize = self.getLocalFileSize()
+		self.cur = curSize
 		if restart:
 			f = open(self.localFileName , "wb")
 		else:
@@ -125,9 +137,9 @@ class DownloadFile(object):
 		if self.auth:
 			self.__authHttp__()
 		req = urllib2.Request(self.url)
-		req.headers['Range'] = 'bytes=%s-%s' % (self.getLocalFileSize(), self.getUrlFileSize())
+		req.headers['Range'] = 'bytes=%s-%s' % (curSize, self.getUrlFileSize())
 		urllib2Obj = urllib2.urlopen(req)
-		self.__downloadFile__(urllib2Obj, f)
+		self.__downloadFile__(urllib2Obj, f, callBack=callBack)
 
 	def __startFtpResume__(self, restart=None):
 		"""starts to resume FTP"""
@@ -178,30 +190,50 @@ class DownloadFile(object):
 		"""returns protocol of url (ftp or http)"""
 		type = urlparse.urlparse(self.url).scheme
 		return type	
+        
+	def checkExists(self):
+		if self.auth:
+			if self.type == 'http':
+				authObj = self.__authHttp__()
+				try:
+					urllib2.urlopen(self.url)
+				except urllib2.HTTPError:
+					return False
+				return True
+			elif self.type == 'ftp':
+				return "not yet supported"
+		else:
+			urllib2Obj = urllib2.urlopen(self.url, timeout=self.timeout)
+			try:
+				urllib2.urlopen(self.url)
+			except urllib2.HTTPError:
+				return False
+			return True
 
 	def download(self, callBack=None, aRgs=None):
 		"""starts the file download"""
 		#set socket timeout
 		# timeout in seconds
 		socket.setdefaulttimeout(self.timeout)
-		
+		print self.localFileName
 		f = open(self.localFileName , "wb")
 		if self.auth:
 			if self.type == 'http':
-				authObj = self.__authHttp__()
-				self.__downloadFile__(authObj, f, callback=callBack, args=aRgs)
+				self.__authHttp__()
+				urllib2Obj = urllib2.urlopen(self.url, timeout=self.timeout)
+				self.__downloadFile__(urllib2Obj, f, callBack=callBack, args=aRgs)
 			elif self.type == 'ftp':
 				self.url = self.url.replace('ftp://', '')
 				authObj = self.__authFtp__()
-				self.__downloadFile__(authObj, f, callback=callBack, args=aRgs)
+				self.__downloadFile__(authObj, f, callBack=callBack, args=aRgs)
 		else:
 			urllib2Obj = urllib2.urlopen(self.url, timeout=self.timeout)
-			self.__downloadFile__(urllib2Obj, f)
+			self.__downloadFile__(urllib2Obj, f, callBack=callBack)
 
-	def resume(self):
+	def resume(self, callBack=None):
 		"""attempts to resume file download"""
 		type = self.getType()
 		if type == 'http':
-			self.__startHttpResume__()
+			self.__startHttpResume__(callBack=callBack)
 		elif type == 'ftp':
 			self.__startFtpResume__()
