@@ -6,15 +6,6 @@ import urlparse
 import urllib
 import sys
 import socket
-#try:
-    #from gevent import Timeout #TODO: Need to only load if timeout is given. Change to try: block
-#except:
- #   pass
-
-#download links
-#http://www.lfd.uci.edu/~gohlke/pythonlibs/qiqkf8dk/greenlet-0.3.1.win32-py2.7.exe
-#http://pypi.python.org/packages/2.7/g/gevent/gevent-0.13.2.win32-py2.7.exe#md5=14b053e0589b598bca4a346fab332cfe 
-
  
 version = "0.4.0"
 
@@ -61,7 +52,7 @@ class DownloadFile(object):
         if not self.localFileName: #if no filename given pulls filename from the url
             self.localFileName = self.getUrlFilename(self.url)
         
-    def __downloadFile__(self, urlObj, fileObj, callBack=None, args=None):
+    def __downloadFile__(self, urlObj, fileObj, callBack=None):
         """starts the download loop"""
         self.fileSize = self.getUrlFileSize()
         while 1:
@@ -72,7 +63,6 @@ class DownloadFile(object):
                 self.__retry__()
                 break
             if not data:
-                print "done."
                 fileObj.close()
                 break
             fileObj.write(data)
@@ -83,7 +73,6 @@ class DownloadFile(object):
             
     def __retry__(self):
         """auto-resumes up to self.retries"""
-        print 'retrying'
         if self.retries > self.curretry:
                 self.curretry += 1
                 if self.getLocalFileSize() != self.urlFilesize:
@@ -194,7 +183,7 @@ class DownloadFile(object):
                 return False
             return True
 
-    def download(self, callBack=None, aRgs=None):
+    def download(self, callBack=None):
         """starts the file download"""
         self.curretry = 0
         self.cur = 0
@@ -203,11 +192,11 @@ class DownloadFile(object):
             if self.type == 'http':
                 self.__authHttp__()
                 urllib2Obj = urllib2.urlopen(self.url, timeout=self.timeout)
-                self.__downloadFile__(urllib2Obj, f, callBack=callBack, args=aRgs)
+                self.__downloadFile__(urllib2Obj, f, callBack=callBack)
             elif self.type == 'ftp':
                 self.url = self.url.replace('ftp://', '')
                 authObj = self.__authFtp__()
-                self.__downloadFile__(authObj, f, callBack=callBack, args=aRgs)
+                self.__downloadFile__(authObj, f, callBack=callBack)
         else:
             urllib2Obj = urllib2.urlopen(self.url, timeout=self.timeout)
             self.__downloadFile__(urllib2Obj, f, callBack=callBack)
@@ -221,6 +210,3 @@ class DownloadFile(object):
         elif type == 'ftp':
             self.__startFtpResume__()
             
-class FileDownloaderError(Exception):
-    """Base class for exceptions in this module."""
-    pass
