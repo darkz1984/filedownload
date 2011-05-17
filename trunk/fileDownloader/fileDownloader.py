@@ -25,10 +25,10 @@ class DownloadFile(object):
             downloader = fileDownloader.DownloadFile('http://example.com/file.zip')
             downloader.download()
          Use full path to download
-             downloader = fileDownloader.DownloadFile('http://example.com/file.zip', "C:\\Users\\username\\Downloads\\newfilename.zip")
+             downloader = fileDownloader.DownloadFile('http://example.com/file.zip', "C:/Users/username/Downloads/newfilename.zip")
              downloader.download()
          Basic Authentication protected download
-             downloader = fileDownloader.DownloadFile('http://example.com/file.zip', "C:\\Users\\username\\Downloads\\newfilename.zip", ('username','password'))
+             downloader = fileDownloader.DownloadFile('http://example.com/file.zip', "C:/Users/username/Downloads/newfilename.zip", ('username','password'))
              downloader.download()
          Resume
              downloader = fileDownloader.DownloadFile('http://example.com/file.zip')
