@@ -1,8 +1,9 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 setup(name='fileDownloader.py', 
-		version='0.2.1',
+		version='0.4.0',
 		description="Downloads files via HTTP or FTP",
 		download_url="http://code.google.com/p/filedownload/downloads/list",
+        packages = find_packages(exclude="test"),
 		long_description="""Intro
 
 This module is used for downloading files from the internet via http or ftp.
