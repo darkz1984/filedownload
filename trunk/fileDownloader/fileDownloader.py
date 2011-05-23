@@ -48,7 +48,10 @@ class DownloadFile(object):
         self.retries = retries
         self.curretry = 0
         self.cur = 0
-        self.urlFilesize = self.getUrlFileSize()
+        try:
+            self.urlFilesize = self.getUrlFileSize()
+        except urllib2.HTTPError:
+            self.urlFilesize = None
         if not self.localFileName: #if no filename given pulls filename from the url
             self.localFileName = self.getUrlFilename(self.url)
         
