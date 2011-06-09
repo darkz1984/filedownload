@@ -108,6 +108,8 @@ class DownloadFile(object):
     def __startHttpResume__(self, restart=None, callBack=None):
         """starts to resume HTTP"""
         curSize = self.getLocalFileSize()
+        if curSize >= self.urlFilesize:
+            return False
         self.cur = curSize
         if restart:
             f = open(self.localFileName , "wb")
@@ -122,6 +124,9 @@ class DownloadFile(object):
 
     def __startFtpResume__(self, restart=None):
         """starts to resume FTP"""
+        curSize = self.getLocalFileSize()
+        if curSize >= self.urlFilesize:
+            return False
         if restart:
             f = open(self.localFileName , "wb")
         else:
@@ -139,7 +144,7 @@ class DownloadFile(object):
         if len(gPath) > 1:
             ftper.cwd(unEncgPath)
         ftper.sendcmd("TYPE I")
-        ftper.sendcmd("REST " + str(self.getLocalFileSize()))
+        ftper.sendcmd("REST " + str(curSize))
         downCmd = "RETR "+ fileName
         ftper.retrbinary(downCmd, f.write)
         
