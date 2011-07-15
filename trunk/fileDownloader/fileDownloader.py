@@ -1,4 +1,6 @@
-"""Downloads files from http or ftp locations"""
+"""Downloads files from http or ftp locations.
+
+Copyright Joshua Banton"""
 import os
 import urllib2
 import ftplib
